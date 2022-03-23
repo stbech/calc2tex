@@ -34,6 +34,8 @@ language = {"DE":
 
 accuracy = 3
 
+exponential_break = 6    # sets exponent, at which number should be convert to exponential representation 
+
 mult_sign = "\\cdot" #others: \times, \star, \ast
 
 units = {"singleun": {"m": "\\meter", "g": "\\gram", "A": "\\ampere", "C": "\\coulomb", "K": "\\kelvin", "s": "\\second", "J": "\\joule", "N": "\\newton",

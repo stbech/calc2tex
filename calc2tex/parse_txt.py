@@ -9,6 +9,8 @@
     :license: MIT
 """
 
+#TODO Exponential-Darstellung für Zahlen anbieten als zusätzliches Argument
+#TODO prüfe auf Verwendung reserviertee Begriffe, z.B. e, pi
 
 from calc2tex import calc_formula
 from .settings import accuracy, keywords, types
@@ -63,6 +65,9 @@ def read_file(filename: str) -> (dict, dict):
             return {"line": line, "var": var, "tex_var": tex_var, "res": None, 
                     "unit": args[1], "tex_un": None, "type": args[3], "form": args[0], "prec": args[2]}
         
+    convert = lambda num: float(num) if '.' in num else int(num) 
+    # convert decimal numbers to float and the rest to integers  
+    
     
     for line in input_list:                                 #extracts information from pre-processed file into data-container
         if len(line) == 2:                                  #differentiats different cases by length of list
@@ -79,19 +84,19 @@ def read_file(filename: str) -> (dict, dict):
             
         elif is_float(line[3]):
             if keywords[0] in line[-1]:
-                data[line[1]] = input_dict(int(line[0]), "val", line[2], float(line[3]), line[4], int(line[-1][line[-1].index("=")+1:]))
+                data[line[1]] = input_dict(int(line[0]), "val", line[2], convert(line[3]), line[4], int(line[-1][line[-1].index("=")+1:]))
             elif is_float(line[-1]):
-                data[line[1]] = input_dict(int(line[0]), "val", line[2], float(line[3]), line[4], int(line[-1]))
+                data[line[1]] = input_dict(int(line[0]), "val", line[2], convert(line[3]), line[4], int(line[-1]))
             else:
-                data[line[1]] = input_dict(int(line[0]), "val", line[2], float(line[3]), line[4], accuracy)
+                data[line[1]] = input_dict(int(line[0]), "val", line[2], convert(line[3]), line[4], accuracy)
                 
         elif is_float(line[2]):                         #no tex_var specified, so tex_var is set to py_var
             if keywords[0] in line[-1]:
-                data[line[1]] = input_dict(int(line[0]), "val", line[2], float(line[2]), line[3], int(line[-1][line[-1].index("=")+1:]))
+                data[line[1]] = input_dict(int(line[0]), "val", line[2], convert(line[2]), line[3], int(line[-1][line[-1].index("=")+1:]))
             elif is_float(line[-1]):
-                data[line[1]] = input_dict(int(line[0]), "val", line[1], float(line[2]), line[3], int(line[-1]))
+                data[line[1]] = input_dict(int(line[0]), "val", line[1], convert(line[2]), line[3], int(line[-1]))
             else:
-                data[line[1]] = input_dict(int(line[0]), "val", line[1], float(line[2]), line[3], accuracy)
+                data[line[1]] = input_dict(int(line[0]), "val", line[1], convert(line[2]), line[3], accuracy)
                 
         elif len(line) >= 4:
             precision, form_type = accuracy, ""

@@ -10,7 +10,7 @@
 """
 
 
-from .helpers import is_float, search_char, search_bracket
+from .helpers import is_float, search_char, search_bracket, exponential_rounding
 from .settings import mult_sign #ersetze mit settings.mult_sign
 from calc2tex import settings
 import re
@@ -328,13 +328,13 @@ def find_vars(formula: str) -> (str, list):
     index_last = 0
     short_formula = ""
     var_list = []
-
+    #TODO TEST strip trailing and leading whitespace before appending?
     while True:
         index_next = search_char(formula, index_last, chars_in_formula)
         
         if index_next - index_last != 0:
             var = formula[index_last:index_next]
-            var_list.append(var)
+            var_list.append(var.strip())
             if var == "sqrt":
                 short_formula += "~"
             elif var == "abs":
@@ -429,7 +429,9 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
             tex_val[i] = var_list[i] = ""
         elif var in data:
             py_val[i] = data[var]["res"]
-            value_in = str(round(data[var]["res"], data[var]["prec"]))
+            value_in = exponential_rounding(data[var]["res"], data[var]["prec"])
+            #str(round(data[var]["res"], None if data[var]["prec"] == 0 else data[var]["prec"]))      
+                # Integer, falls Rundung auf Null
             tex_val[i] = "".join(("\\SI{", value_in, "}{", data[var]["tex_un"], "}"))
             var_list[i] = data[var]["tex_var"]
         else:
@@ -479,7 +481,7 @@ def vars_in_short_form(short_formula: str, var_list: list) -> str:
 
 
 
-
+#TODO um Werte mit negativem Vorzeichen in Python-Formel und in val-Formel Klammer setzen
 def py_eval(formula: str) -> float:
     """Calculates the result of the formula."""
     return eval(formula)

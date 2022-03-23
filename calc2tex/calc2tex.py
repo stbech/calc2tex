@@ -9,9 +9,11 @@
     :license: MIT
 """
 
+#TODO Ergebnisse in eine python-Datei schreiben
 
 from calc2tex import parse_txt
 from .settings import language
+from .helpers import search_bracket, exponential_rounding
 import json
 
 
@@ -51,26 +53,55 @@ class Calc2tex:
         return self._search(py_var, "var_in")
     
     
-    def val(self, py_var: str) -> str:
+    def val(self, py_var: str, nounit=False) -> str:
         """Returns the formula with inputed values."""
-        return self._search(py_var, "val_in")
+        if nounit:
+            #search for \SI{ -> suche danach die öffnende Klammer und die dazugehörige schließende lösche alles dazwischen bzw. schreibe Rest in neue Variable
+            val = self._search(py_var, "val_in")
+            red_val = ''
+            index = 0
+            
+            while '\SI{' in val[index:]:
+                start_num = val.index('\SI{', index) + 4
+                end_num = search_bracket(val, start_num, 1, True)
+                start_unit= end_num+1
+                end_unit = search_bracket(val, start_unit, 1, True)
+                red_val += val[index:start_unit+1]
+                index = end_unit
+            
+            red_val += val[index:]
+            
+            
+            # print(nounit, start_unit, end_unit)
+            # print(val),
+            # print('0123456789'*(len(val)//10+1))
+            # print(red_val)
+            return red_val
+        else:
+            return self._search(py_var, "val_in")
     
     
+    #TODO subres auch mit Option nounit
     def sub_res(self, py_var: str) -> str:
-        if self._search(py_var, "type") in  ("minmax", "if"):
+        if self._search(py_var, "type") in ("minmax", "if"):
             #TODO zusätzlicher Teilschritt in long aufrufen
-            return " = " + self._search(py_var, "sub_res")
+            return self._search(py_var, "sub_res")
         else:
             return ""
     
     
+    #TODO ab 1e4 (oder exponential_break - accuracy/precision) Anzahl Nachkommastellen reduzieren
+    #TODO Präzision 0 soll keine Nachkommastellen darstellen
     def raw(self, py_var: str, precision: int=None):
         """Returns the result with a certain precision"""
         if precision == None:
             precision = self._search(py_var, "prec")
-        return str(round(self._search(py_var, "res"), precision))
+        
+        #print(str(round(self._search(py_var, "res"), None if precision == 0 else precision)) )
+        return exponential_rounding(self._search(py_var, "res"), precision)
+        #return str(round(self._search(py_var, "res"), None if precision == 0 else precision))   # Integer, falls Rundung auf Null
     
-    
+   
     def res(self, py_var: str, precision: int=None) -> str:
         """Returns the result and its unit with a certain precision"""
         return "".join(("\\SI{", self.raw(py_var, precision), "}{", self.unit(py_var), "}"))
@@ -89,19 +120,53 @@ class Calc2tex:
         """Displays the name and value of a variable."""
         return " ".join((self.name(py_var), "&=", self.res(py_var, precision)))
     
-    
-    def long(self, py_var: str, precision: int=None) -> str:
+  
+    #TODO Option ohne Einheiten darstellen -> nounit=True, an alle Untereinheiten weitergeben suche alle SI-Befehle und leere zweite geschweifte Klammer (auch als globale Option?)
+    #TODO split-Argument einführen
+    #TODO falls res=val nur eins darstellen
+    def long(self, py_var: str, precision: int=None, nounit: bool=False, split: tuple=None) -> str:
         """Displays complete formula."""
+        split = tuple([split]) if type(split) == int else split       # convert integer to tuple
+        
         if self._search(py_var, "var") == "form":
+            calculations = [self.var(py_var), self.val(py_var, nounit), self.sub_res(py_var), self.res(py_var, precision)]
+            calculations = [item for item in calculations if item]
+            
             if self.var(py_var) == self.val(py_var):
-                return "".join((self.name(py_var), " &= ", self.val(py_var), self.sub_res(py_var), " = ", self.res(py_var, precision)))
+                if not split:
+                    #TODO auch auf calculations beziehen
+                    return self.name(py_var) + " &= " + " = ".join(calculations[1:])
+                    #return "".join((self.name(py_var), " &= ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
+                else:
+                    string = self.name(py_var) + " &= "
+                    elem_old = 1
+                    
+                    for elem in split:
+                        string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
+                        elem_old = elem
+                        
+                    string += " = ".join(calculations[elem_old:])
+                    return string
             else:
-                return "".join((self.name(py_var), " &= ", self.var(py_var), " = ", self.val(py_var), self.sub_res(py_var), " = ", self.res(py_var, precision)))
+                if not split:
+                    return self.name(py_var) + " &= " + " = ".join(calculations)
+                    #return "".join((self.name(py_var), " &= ", self.var(py_var), " = ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
+                else:
+                    string = self.name(py_var) + " &= "
+                    elem_old = 0
+                    
+                    for elem in split:
+                        string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
+                        elem_old = elem
+                        
+                    string += " = ".join(calculations[elem_old:])
+                    return string
         else:
             return self.short(py_var, precision)
     
-    
-    def mult(self, first: str, last: str, precision: int=None) -> str:
+  
+    #TODO Warnung wenn Start- oder Endwert nicht gefunden
+    def mult(self, first: str, last: str, precision: int=None, nounit: bool=False) -> str:
         """Displays multiple formulas at once."""
         back = ""
         found = False
@@ -110,7 +175,7 @@ class Calc2tex:
             if key == first:
                 found = True
             if found == True:
-                back += self.long(key, precision) + "\\\\\n"
+                back += self.long(key, precision, nounit) + "\\\\\n"
             if key == last:
                 break
                 

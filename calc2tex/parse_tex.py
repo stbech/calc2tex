@@ -9,7 +9,8 @@
     :copyright: 2020 by Stefan Becherer
     :license: MIT
 """
-
+#TODO falls filecontents-Umgebung mit dem Namen der txt-Datei in tex-Datei: entfernen, falls möglich
+#TODO eine input.tex in mehrere output.tex aufzuteilen
 
 from .helpers import search_bracket, search_char
 from .calc2tex import Calc2tex
