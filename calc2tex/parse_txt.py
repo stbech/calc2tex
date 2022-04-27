@@ -11,8 +11,10 @@
 
 #TODO Exponential-Darstellung für Zahlen anbieten als zusätzliches Argument
 #TODO prüfe auf Verwendung reserviertee Begriffe, z.B. e, pi
+#TODO default Winkel-Einheit setzen
 
 from calc2tex import calc_formula
+from .advanced_calc import evaluate
 from .settings import accuracy, keywords, types
 from .calc_unit import unit_to_tex
 from .helpers import is_float
@@ -41,10 +43,11 @@ def read_file(filename: str) -> (dict, dict):
     bibs = {}
     input_list = []                                 #a list for holding the pre-processed lines 
     
-    with open(filename) as file:
+    with open(filename, encoding="utf-8") as file:
         for i, line in enumerate(file, 1):                               #iterates over the lines in file
             save = [str(i)]
             index = line.find("#")
+            #TODO prüfe ob Strichpunkt zwischen Anführungszeichen?
             if index == -1:
                 save.extend(line.split(";") )               #splits line on every semi-colon
             else: 
@@ -61,6 +64,14 @@ def read_file(filename: str) -> (dict, dict):
         if var == "val":
             return {"line": line, "var": var, "tex_var": tex_var, "res": args[0],
                     "unit": args[1], "tex_un": None, "prec": args[2]}
+        elif var == "str":
+            #TODO unit nötig?
+            string = args[0][1:-1]
+            return {"line": line, "var": var, "tex_var": tex_var, "res": string,
+                    "unit": args[1], "tex_un": None}   
+        elif var == "eval":
+            return {"line": line, "var": var, "tex_var": tex_var, "res": None, "bool": None, "cond": None,
+                    "unit": args[1], "tex_un": None, "type": args[3], "form": args[0], "prec": args[2]}
         else:
             return {"line": line, "var": var, "tex_var": tex_var, "res": None, 
                     "unit": args[1], "tex_un": None, "type": args[3], "form": args[0], "prec": args[2]}
@@ -68,8 +79,9 @@ def read_file(filename: str) -> (dict, dict):
     convert = lambda num: float(num) if '.' in num else int(num) 
     # convert decimal numbers to float and the rest to integers  
     
-    
+    #TODO falls Zeilenumbruch in line vorgesehen z.B durch "break" ?? -> zwei Zeilen zusammenfassen
     for line in input_list:                                 #extracts information from pre-processed file into data-container
+        print(line)
         if len(line) == 2:                                  #differentiats different cases by length of list
             command, bib_str = line[1].split(":")
             if command.strip() == "use":
@@ -81,6 +93,12 @@ def read_file(filename: str) -> (dict, dict):
             #TODO zweites dict mit Werten von Bibs, auf Reihenfolge von Einfügen achten falls Doppelkey,
                 #erst im aktuellen Verzeichnis schauen-> Aufbau und Verarbeitung wie read-file, dann im Modulverzeichnis Biblio suchen
                 #dort als json oder txt speichern, letzteres geringerer Platzbedarf, langsameres parsen; abhängig von Dateiendung verarbeiten
+         
+        elif line[3].startswith('"') or line[3].startswith("'"):
+            data[line[1]] = input_dict(int(line[0]), "str", line[2], line[3], line[4])
+            
+        elif line[2].startswith('"') or line[2].startswith("'"):
+            data[line[1]] = input_dict(int(line[0]), "str", line[1], line[2], line[3])
             
         elif is_float(line[3]):
             if keywords[0] in line[-1]:
@@ -117,17 +135,24 @@ def read_file(filename: str) -> (dict, dict):
                 
                             
             if len(line) - keys == 5:
-                data[line[1]] = input_dict(int(line[0]), "form", line[2], line[3], line[4], precision, form_type)
+                if line[3].startswith("eval "):
+                    data[line[1]] = input_dict(int(line[0]), "eval", line[2], line[3], line[4], precision, form_type)
+                else:
+                    data[line[1]] = input_dict(int(line[0]), "form", line[2], line[3], line[4], precision, form_type)
             else:
-                data[line[1]] = input_dict(int(line[0]), "form", line[1], line[2], line[3], precision, form_type)
-                
+                if line[3].startswith("eval "):
+                    data[line[1]] = input_dict(int(line[0]), "eval", line[1], line[2], line[3], precision, form_type)
+                else:
+                    data[line[1]] = input_dict(int(line[0]), "form", line[1], line[2], line[3], precision, form_type)
+               
         else:
             pass 
+        print(data[line[1]]) 
         
     return data, bibs
 
 
-
+#TODO calculate every item directly in read_file, to make change_angle_mode possible
 def calculate(data: dict, bibs: dict) -> dict:
     """
     Takes the dictionary with the inputs from the txt-file, and returns
@@ -150,6 +175,11 @@ def calculate(data: dict, bibs: dict) -> dict:
         data[key]["tex_un"] = unit_to_tex(data[key]["unit"])
         if data[key]["var"] == "form":
             data[key]["res"], data[key]["var_in"], data[key]["val_in"] = calc_formula.main(data[key]["form"], data, bibs)
+        elif data[key]["var"] == "eval":
+            results = evaluate(data[key]["form"], data, bibs)
+            for res_key, res_item in results.items():
+                data[key][res_key] = res_item
+            #print('true')   # erzeuge cond_res, cond_var_in, cond_val_in
         
     return data
 

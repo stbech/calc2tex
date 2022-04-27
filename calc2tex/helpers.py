@@ -21,13 +21,25 @@ def is_float(number: str) -> bool:
         return True
     
     
+
+def intfloat(number: str) -> (int,float):
+    "Convert input-string to integer or float in case of a decimal point"
+    if "." in number:
+        return float(number)
+    else:
+        return int(number)
+    
+    
 #exponential_break = 6   #TODO aus settings
 #accuracy = 3
 #TODO add trailing whitespaces, to show precision like round(1.0001, 3) -> 1.0, but should be 1.000
 #TODO falls a=0 und eingesetzt in cos(a) ->var-Form: cos(0.0) -> wieso?
 def exponential_rounding(number: float, precision: int) -> str:
     """Converts number to exponential representation, if above certain threshold"""
-    if abs(number) >= 10**exponential_break:
+    if number == 0:
+        return str(number)
+    
+    elif abs(number) >= 10**exponential_break:
         exponent = len(str(int(number))) - 1
         num = round(number/(10**(exponent - precision))) / 10**precision
         num = int(num) if precision == 0 else num

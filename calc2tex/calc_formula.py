@@ -305,7 +305,7 @@ def split_funct(string: str) -> str:
         back = back.replace("!", funct, 1)
     
     return back
-
+#funct_indicators = {"?(": ("?(", ")"), "~(": ("?{", "}"), "$(": ("?[", "]"), "°(": ("?´", "`")}
 
 
 def find_vars(formula: str) -> (str, list):
@@ -333,8 +333,8 @@ def find_vars(formula: str) -> (str, list):
         index_next = search_char(formula, index_last, chars_in_formula)
         
         if index_next - index_last != 0:
-            var = formula[index_last:index_next]
-            var_list.append(var.strip())
+            var = formula[index_last:index_next].strip()
+            var_list.append(var)
             if var == "sqrt":
                 short_formula += "~"
             elif var == "abs":
@@ -350,6 +350,7 @@ def find_vars(formula: str) -> (str, list):
         short_formula += formula[index_next]
         index_last = index_next + 1
     
+    #print(formula, short_formula)
     return short_formula, var_list
 
 
@@ -378,7 +379,7 @@ def formula_to_tex(formula: str) -> str:
     back = back.replace("]", "\\right|")
     back = back.replace("´", "\\begin{Bmatrix}")
     back = back.replace("`", "\\end{Bmatrix}")
-    back = back.replace("%", "\bmod ")
+    back = back.replace("%", "\\bmod ")
     
     return back
 
@@ -422,7 +423,10 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
                 tex_val[i] = var_list[i] = "\\" + var
         elif var in trigo_list:
             py_val[i] = "trigo." + var
-            tex_val[i] = var_list[i] = "\\" + var[:-1]
+            tex_val[i] = var_list[i] = "\\" + var[:-1]        
+        elif var in ("ceil", "floor"):
+             py_val[i] = "int(np." + var
+             tex_val[i] = var_list[i] = var
         elif var in ("min", "max"):
             tex_val[i] = var_list[i] = "\\" + var
         elif var == "abs":
@@ -450,33 +454,89 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
                 #nothing found
                 #TODO raise exception
                 pass
+            
+    #print(var_list, tex_val, py_val)
         
     return var_list, tex_val, py_val
 
 
 
-def vars_in_short_tex(short_formula: str, var_list: list) -> str:
+def input_variables_in_tex(short_formula: str, var_list: list) -> str:
     """Inputs all variables from var_list into short_tex"""
     #TODO statt Fragezeichen noch selteneres verwenden (Paragraph oder Tilde)
         #in funct_indicator umdefinieren
     
-    for var in var_list:
+    for var in var_list: 
+        if var == "ceil" or var == "floor":
+            index_start = short_formula.find("?\left(")
+            index_end = search_bracket(short_formula, index_start+6, 1)
+            short_formula = "".join((short_formula[:index_start+1], "\\left\\l", var, " ", short_formula[index_start+7:index_end-6], "\\right\\r", var, short_formula[index_end+1:]))
+            var = ""
+            
         short_formula = short_formula.replace("?", str(var), 1)
-        
+     
     return short_formula
 
 
 
-def vars_in_short_form(short_formula: str, var_list: list) -> str:
-    """Inputs all variables from var_list into short_formula"""
+def input_values_in_tex(short_formula: str, var_list: list, py_var_list: list) -> str:
+    """Inputs all variables from var_list into short_tex"""
     #TODO statt Fragezeichen noch selteneres verwenden (Paragraph oder Tilde)
+        #in funct_indicator umdefinieren
+    
+    for var, py_var in zip(var_list, py_var_list):
+        if var == "ceil" or var == "floor":
+            index_start = short_formula.find("?\left(")
+            index_end = search_bracket(short_formula, index_start+6, 1)
+            short_formula = "".join((short_formula[:index_start+1], "\\left\\l", var, " ", short_formula[index_start+7:index_end-6], "\\right\\r", var, short_formula[index_end+1:]))
+            var = ""
+        
+        if (type(py_var) == int or type(py_var) == float or type(var) == np.float64) and float(py_var) < 0:
+            # Place all values of defined variables within brackets when negative
+            short_formula = short_formula.replace("?", "".join(("\\left(", str(var), "\\right)")), 1)
+        else:
+            short_formula = short_formula.replace("?", str(var), 1)
+     
+    return short_formula
+
+
+
+# def vars_in_short_form(short_formula: str, var_list: list) -> str:
+#     """Inputs all variables from var_list into short_formula"""
+#     #TODO statt Fragezeichen noch selteneres verwenden (Paragraph oder Tilde)
+#     short_formula = short_formula.replace("~", "?")
+#     short_formula = short_formula.replace("$", "?")
+#     short_formula = short_formula.replace("°", "?")
+    
+#     for var in var_list:
+#         short_formula = short_formula.replace("?", str(var), 1)
+        
+#     return short_formula
+
+
+
+def vars_in_python_form(short_formula: str, var_list: list) -> str:
+    """Inputs all variables from var_list into formula to evalute in python"""
+    #TODO statt Fragezeichen noch selteneres verwenden (Paragraph oder Tilde)
+    
     short_formula = short_formula.replace("~", "?")
     short_formula = short_formula.replace("$", "?")
     short_formula = short_formula.replace("°", "?")
+    #TODO aus ceil, floor-Ergebnissen integer machen
     
     for var in var_list:
-        short_formula = short_formula.replace("?", str(var), 1)
-        
+        if var == "int(np.ceil" or var == "int(np.floor":
+            index_start = short_formula.find("?")
+            index_end = search_bracket(short_formula, index_start+1, 1)
+            short_formula = short_formula[:index_end] + ")" + short_formula[index_end:]
+         
+        #print(var, type(var), end=' ')
+        if (type(var) == int or type(var) == float or type(var) == np.float64) and float(var) < 0:
+            # Place all values of defined variables within brackets when negative
+            short_formula = short_formula.replace("?", "".join(("(", str(var), ")")), 1)
+        else:
+            short_formula = short_formula.replace("?", str(var), 1)
+  
     return short_formula
 
 
@@ -563,8 +623,9 @@ def main(formula: str, data: dict, bibs: dict) -> (float, str, str):
     
     tex_vars, tex_vals, py_vals = transform_vars(var_list, data, bibs)
     
-    py_res = py_eval(vars_in_short_form(short_formula, py_vals))
-    tex_var, tex_val = vars_in_short_tex(short_tex, tex_vars), vars_in_short_tex(short_tex, tex_vals)
+    
+    py_res = py_eval(vars_in_python_form(short_formula, py_vals))
+    tex_var, tex_val = input_variables_in_tex(short_tex, tex_vars), input_values_in_tex(short_tex, tex_vals, py_vals)
     
     if "}^" in tex_val:
         tex_val = add_brackets(tex_val)

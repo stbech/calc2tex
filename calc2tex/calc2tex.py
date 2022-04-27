@@ -94,9 +94,10 @@ class Calc2tex:
     #TODO Präzision 0 soll keine Nachkommastellen darstellen
     def raw(self, py_var: str, precision: int=None):
         """Returns the result with a certain precision"""
+        
         if precision == None:
             precision = self._search(py_var, "prec")
-        
+        #TODO before exponential rounding check whether variable is defined, else return ??
         #print(str(round(self._search(py_var, "res"), None if precision == 0 else precision)) )
         return exponential_rounding(self._search(py_var, "res"), precision)
         #return str(round(self._search(py_var, "res"), None if precision == 0 else precision))   # Integer, falls Rundung auf Null
@@ -104,7 +105,11 @@ class Calc2tex:
    
     def res(self, py_var: str, precision: int=None) -> str:
         """Returns the result and its unit with a certain precision"""
-        return "".join(("\\SI{", self.raw(py_var, precision), "}{", self.unit(py_var), "}"))
+        if self._search(py_var, "var") == "str":
+            #TODO anpassen, ob Einheit gewollt
+            return "".join(("\\text{",self._search(py_var, "res"),"}\\SI{}{", self.unit(py_var), "}"))
+        else:
+            return "".join(("\\SI{", self.raw(py_var, precision), "}{", self.unit(py_var), "}"))
     
     
     def unit(self, py_var: str) -> str:
@@ -124,6 +129,7 @@ class Calc2tex:
     #TODO Option ohne Einheiten darstellen -> nounit=True, an alle Untereinheiten weitergeben suche alle SI-Befehle und leere zweite geschweifte Klammer (auch als globale Option?)
     #TODO split-Argument einführen
     #TODO falls res=val nur eins darstellen
+    #TODO falls tex_var empty zeige kein = -> Starte mit '&\hspace' für Ausrichtung und Platz für fehlendes =
     def long(self, py_var: str, precision: int=None, nounit: bool=False, split: tuple=None) -> str:
         """Displays complete formula."""
         split = tuple([split]) if type(split) == int else split       # convert integer to tuple
@@ -133,34 +139,66 @@ class Calc2tex:
             calculations = [item for item in calculations if item]
             
             if self.var(py_var) == self.val(py_var):
-                if not split:
-                    #TODO auch auf calculations beziehen
-                    return self.name(py_var) + " &= " + " = ".join(calculations[1:])
-                    #return "".join((self.name(py_var), " &= ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
-                else:
-                    string = self.name(py_var) + " &= "
-                    elem_old = 1
-                    
-                    for elem in split:
-                        string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
-                        elem_old = elem
-                        
-                    string += " = ".join(calculations[elem_old:])
-                    return string
+                calculations.remove(self.var(py_var))
+            elif self.res(py_var) == self.val(py_var):
+                calculations.remove(self.val(py_var, nounit))
+                
+            if not split:
+                return self.name(py_var) + " &= " + " = ".join(calculations)
             else:
-                if not split:
-                    return self.name(py_var) + " &= " + " = ".join(calculations)
-                    #return "".join((self.name(py_var), " &= ", self.var(py_var), " = ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
-                else:
-                    string = self.name(py_var) + " &= "
-                    elem_old = 0
+                string = self.name(py_var) + " &= "
+                elem_old = 1
+                
+                for elem in split:
+                    string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
+                    elem_old = elem
                     
-                    for elem in split:
-                        string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
-                        elem_old = elem
+                string += " = ".join(calculations[elem_old:])
+                return string
+                
+            # if self.var(py_var) == self.val(py_var):
+            #     if not split:
+            #         return self.name(py_var) + " &= " + " = ".join(calculations[1:])
+            #         #return "".join((self.name(py_var), " &= ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
+            #     else:
+            #         string = self.name(py_var) + " &= "
+            #         elem_old = 1
+                    
+            #         for elem in split:
+            #             string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
+            #             elem_old = elem
                         
-                    string += " = ".join(calculations[elem_old:])
-                    return string
+            #         string += " = ".join(calculations[elem_old:])
+            #         return string
+            # elif self.res(py_var) == self.val(py_var):
+            #     calculations.remove(self.val(py_var, nounit))
+            #     if not split:
+            #         return self.name(py_var) + " &= " + " = ".join(calculations)
+            #         #return "".join((self.name(py_var), " &= ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
+            #     else:
+            #         string = self.name(py_var) + " &= "
+            #         elem_old = 0
+                    
+            #         for elem in split:
+            #             string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
+            #             elem_old = elem
+                        
+            #         string += " = ".join(calculations[elem_old:])
+            #         return string            
+            # else:
+            #     if not split:
+            #         return self.name(py_var) + " &= " + " = ".join(calculations)
+            #         #return "".join((self.name(py_var), " &= ", self.var(py_var), " = ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
+            #     else:
+            #         string = self.name(py_var) + " &= "
+            #         elem_old = 0
+                    
+            #         for elem in split:
+            #             string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
+            #             elem_old = elem
+                        
+            #         string += " = ".join(calculations[elem_old:])
+            #         return string
         else:
             return self.short(py_var, precision)
     

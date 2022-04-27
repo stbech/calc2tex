@@ -12,6 +12,8 @@
 #TODO falls filecontents-Umgebung mit dem Namen der txt-Datei in tex-Datei: entfernen, falls möglich
 #TODO eine input.tex in mehrere output.tex aufzuteilen
 
+#TODO Befehl in Latex Präzision zu setzen
+
 from .helpers import search_bracket, search_char
 from .calc2tex import Calc2tex
 
@@ -19,7 +21,7 @@ from .calc2tex import Calc2tex
 def process_tex(in_file: str, out_file: str, show_log: bool=True) ->None:
     commands = []
 
-    with open(in_file) as stdin, open(out_file, "w") as stdout:
+    with open(in_file, encoding="utf-8") as stdin, open(out_file, "w", encoding="utf-8") as stdout:
         for line in stdin:
             while True:
                 if "Calc2tex(" in line:
@@ -45,7 +47,19 @@ def process_tex(in_file: str, out_file: str, show_log: bool=True) ->None:
                     if command in line:
                         index = line.index(command)
                         if "%" in line[0:index]:
-                            break
+                            percent_index = -1
+                            comment = False
+                            
+                            while True:
+                                percent_index = line.find("%", percent_index+1)
+                                if percent_index == -1:
+                                    break
+                                if line[percent_index-1] != "\\":
+                                    comment = True
+                                    break
+                             
+                            if comment == True:
+                                break
                         
                         opening = search_char(line, index, ("("))
                         closing = search_bracket(line, opening, 1)
