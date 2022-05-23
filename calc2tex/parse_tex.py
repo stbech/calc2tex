@@ -14,15 +14,15 @@
 
 #TODO Befehl in Latex Präzision zu setzen
 
-from .helpers import search_bracket, search_char
+from .helpers import search_bracket, search_char, Calc2texError
 from .calc2tex import Calc2tex
 
-
+#TODO a1 = Calc2tex('file.json') -> only load file, nothing else
 def process_tex(in_file: str, out_file: str, show_log: bool=True) ->None:
     commands = []
 
     with open(in_file, encoding="utf-8") as stdin, open(out_file, "w", encoding="utf-8") as stdout:
-        for line in stdin:
+        for line_nr, line in enumerate(stdin):
             while True:
                 if "Calc2tex(" in line:
                     index = line.index("Calc2tex(")
@@ -63,7 +63,11 @@ def process_tex(in_file: str, out_file: str, show_log: bool=True) ->None:
                         
                         opening = search_char(line, index, ("("))
                         closing = search_bracket(line, opening, 1)
-                        insert = eval(line[index:closing+1])
+                        try:
+                            insert = eval(line[index:closing+1])
+                        except Exception as e:
+                            raise Calc2texError(f"Could not insert formula in tex-line {line_nr+1}") from e
+                                                    
                         if "\t" == line[index-1]:
                             num = line.count("\t", 0, index)
                             insert = insert.replace("\n", "\n" + "\t"*num)

@@ -36,6 +36,7 @@ def intfloat(number: str) -> (int,float):
 #TODO falls a=0 und eingesetzt in cos(a) ->var-Form: cos(0.0) -> wieso?
 def exponential_rounding(number: float, precision: int) -> str:
     """Converts number to exponential representation, if above certain threshold"""
+    
     if number == 0:
         return str(number)
     
@@ -49,7 +50,8 @@ def exponential_rounding(number: float, precision: int) -> str:
     elif abs(number) >= 10**(exponential_break - precision) and precision == accuracy:
         new_precision = exponential_break - len(str(int(number))) + 1
         
-        return str(round(number, None if precision == 0 else new_precision))
+        # return str(round(number, None if precision == 0 else new_precision))
+        return str(int(round(number, None)) if precision == 0 else round(number,new_precision))
       
     #TODO wird durch gewählte Präzision ausgehebelt -> falls precison=10: 10 Nachkommastellen
         # precision durch Standard-accuracy ersetzen
@@ -61,7 +63,8 @@ def exponential_rounding(number: float, precision: int) -> str:
         return str(num) + 'e' + str(exponent)
     
     else:
-        return str(round(number, None if precision == 0 else precision))
+        # return str(round(number, None if precision == 0 else precision))
+        return str(int(round(number, None)) if precision == 0 else round(number,precision))
     
 
 
@@ -149,3 +152,7 @@ def search_bracket(string: str, pos: int, direction: int, curly_bracket: bool=Fa
             numcorr += 1
             pos = index + 1
 
+
+
+class Calc2texError(Exception):
+    pass

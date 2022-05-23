@@ -12,9 +12,11 @@
 #TODO Ergebnisse in eine python-Datei schreiben
 
 from calc2tex import parse_txt
-from .settings import language
+from .settings import language, check_symb
 from .helpers import search_bracket, exponential_rounding
 import json
+
+
 
 
 class Calc2tex:
@@ -48,16 +50,23 @@ class Calc2tex:
         return self._search(py_var, "tex_var")
     
     
-    def var(self, py_var: str) -> str:
+    def var(self, py_var: str, cond: bool=False) -> str:
         """Returns the formula with inputed variables."""
-        return self._search(py_var, "var_in")
+        search = "cond_var_in" if cond else "var_in"
+        return self._search(py_var, search)
     
     
-    def val(self, py_var: str, nounit=False) -> str:
+    def val(self, py_var: str, nounit: bool=False, cond: bool=False) -> str:
         """Returns the formula with inputed values."""
+        search = "cond_val_in" if cond else "val_in"
+        
+        val = self._search(py_var, search)
+        
+        if (val == None) or not(nounit):
+            return val
+        
         if nounit:
             #search for \SI{ -> suche danach die öffnende Klammer und die dazugehörige schließende lösche alles dazwischen bzw. schreibe Rest in neue Variable
-            val = self._search(py_var, "val_in")
             red_val = ''
             index = 0
             
@@ -68,17 +77,22 @@ class Calc2tex:
                 end_unit = search_bracket(val, start_unit, 1, True)
                 red_val += val[index:start_unit+1]
                 index = end_unit
+            # try:
+            #     while '\SI{' in val[index:]:
+            #         start_num = val.index('\SI{', index) + 4
+            #         end_num = search_bracket(val, start_num, 1, True)
+            #         start_unit= end_num+1
+            #         end_unit = search_bracket(val, start_unit, 1, True)
+            #         red_val += val[index:start_unit+1]
+            #         index = end_unit
+            # except:
+            #     print(py_var, search, val)
             
             red_val += val[index:]
             
-            
-            # print(nounit, start_unit, end_unit)
-            # print(val),
-            # print('0123456789'*(len(val)//10+1))
-            # print(red_val)
             return red_val
         else:
-            return self._search(py_var, "val_in")
+            return self._search(py_var, search)
     
     
     #TODO subres auch mit Option nounit
@@ -92,24 +106,26 @@ class Calc2tex:
     
     #TODO ab 1e4 (oder exponential_break - accuracy/precision) Anzahl Nachkommastellen reduzieren
     #TODO Präzision 0 soll keine Nachkommastellen darstellen
-    def raw(self, py_var: str, precision: int=None):
+    def raw(self, py_var: str, precision: int=None, cond: bool=False):
         """Returns the result with a certain precision"""
+        search = "cond_res" if cond else "res"
+        
+        # if py_var == 'delta_s':
+        #     print(precision)
         
         if precision == None:
             precision = self._search(py_var, "prec")
-        #TODO before exponential rounding check whether variable is defined, else return ??
+            
+        # if py_var == 'delta_s':
+        #     print(exponential_rounding(self._search(py_var, search), precision))
+        #     print(precision)
         #print(str(round(self._search(py_var, "res"), None if precision == 0 else precision)) )
-        return exponential_rounding(self._search(py_var, "res"), precision)
+        if self._search(py_var, search) != "??":
+            return exponential_rounding(self._search(py_var, search), precision)
+        else: 
+            return '??'
         #return str(round(self._search(py_var, "res"), None if precision == 0 else precision))   # Integer, falls Rundung auf Null
     
-   
-    def res(self, py_var: str, precision: int=None) -> str:
-        """Returns the result and its unit with a certain precision"""
-        if self._search(py_var, "var") == "str":
-            #TODO anpassen, ob Einheit gewollt
-            return "".join(("\\text{",self._search(py_var, "res"),"}\\SI{}{", self.unit(py_var), "}"))
-        else:
-            return "".join(("\\SI{", self.raw(py_var, precision), "}{", self.unit(py_var), "}"))
     
     
     def unit(self, py_var: str) -> str:
@@ -120,17 +136,54 @@ class Calc2tex:
         #     back = "[-]"
         return back
     
+   
     
-    def short(self, py_var: str, precision: int=None) -> str:
+    def res(self, py_var: str, precision: int=None, cond: bool=False) -> str:
+        """Returns the result and its unit with a certain precision"""
+        search = "cond_res" if cond else "res"
+        
+        if self._search(py_var, "res") == "??":
+            return "??"
+        
+        if self._search(py_var, "var") == "str":
+            #TODO anpassen, ob Einheit gewollt
+            return "".join(("\\text{",self._search(py_var, search),"}\\SI{}{", self.unit(py_var), "}"))
+        else:
+            return "".join(("\\SI{", self.raw(py_var, precision, cond), "}{", self.unit(py_var), "}"))
+    
+        
+    
+    def cond(self, py_var: str) -> str:
+        return self._search(py_var, "cond")
+    
+    
+    
+    def check(self, py_var: str) -> str:
+        return check_symb[str(self._search(py_var, "bool"))]
+    
+    
+    
+    def short(self, py_var: str, precision: int=None, check: bool=False) -> str:
         """Displays the name and value of a variable."""
-        return " ".join((self.name(py_var), "&=", self.res(py_var, precision)))
+        if self._search(py_var, "var") == "eval":
+            if self.name(py_var) == "":
+                string = "".join(("&\\hspace{5.1mm} ", self.res(py_var, precision), self.cond(py_var), self.res(py_var, precision, True)))
+            else:
+                string =  " ".join((self.name(py_var), "&=", self.res(py_var, precision), self.cond(py_var), self.res(py_var, precision, True)))
+            
+            add = self.check(py_var) if check else ""
+            return string + add
+        else:
+            if self.name(py_var) == "":
+                return "&\\hspace{5.1mm} " + self.res(py_var, precision)
+            else:
+                return " ".join((self.name(py_var), "&=", self.res(py_var, precision)))
+        #return " ".join((self.name(py_var), "&=", self.res(py_var, precision)))
     
   
     #TODO Option ohne Einheiten darstellen -> nounit=True, an alle Untereinheiten weitergeben suche alle SI-Befehle und leere zweite geschweifte Klammer (auch als globale Option?)
     #TODO split-Argument einführen
-    #TODO falls res=val nur eins darstellen
-    #TODO falls tex_var empty zeige kein = -> Starte mit '&\hspace' für Ausrichtung und Platz für fehlendes =
-    def long(self, py_var: str, precision: int=None, nounit: bool=False, split: tuple=None) -> str:
+    def long(self, py_var: str, precision: int=None, nounit: bool=False, noval: bool=False, split: tuple=None, check: bool=False) -> str:
         """Displays complete formula."""
         split = tuple([split]) if type(split) == int else split       # convert integer to tuple
         
@@ -138,73 +191,110 @@ class Calc2tex:
             calculations = [self.var(py_var), self.val(py_var, nounit), self.sub_res(py_var), self.res(py_var, precision)]
             calculations = [item for item in calculations if item]
             
-            if self.var(py_var) == self.val(py_var):
-                calculations.remove(self.var(py_var))
-            elif self.res(py_var) == self.val(py_var):
+            if noval:
                 calculations.remove(self.val(py_var, nounit))
-                
-            if not split:
-                return self.name(py_var) + " &= " + " = ".join(calculations)
+            else:
+                if self.var(py_var) == self.val(py_var):
+                    calculations.remove(self.var(py_var))
+                elif self.res(py_var) == self.val(py_var):
+                    calculations.remove(self.val(py_var, nounit))
+             
+            if self.name(py_var) == "":
+                string = "&\\hspace{5.1mm} "
             else:
                 string = self.name(py_var) + " &= "
-                elem_old = 1
+                
+            if not split:
+                return string + " = ".join(calculations)
+            else:
+                elem_old = 0
                 
                 for elem in split:
+                    if elem >= len(calculations):
+                        continue
                     string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
                     elem_old = elem
                     
                 string += " = ".join(calculations[elem_old:])
                 return string
+        
+        elif self._search(py_var, "var") == "eval":
+            left_calc = [self.var(py_var), self.val(py_var, nounit), self.res(py_var, precision)]   # subres removed
+            right_calc = [self.var(py_var, cond=True), self.val(py_var, nounit, cond=True), self.res(py_var, precision, cond=True)]
+            
+            if noval:
+                left_calc.remove(self.val(py_var, nounit))
+                right_calc.remove(self.val(py_var, nounit, cond=True))
+            else:
+                if self.var(py_var) == self.val(py_var):
+                    left_calc.remove(self.var(py_var))
+                elif self.res(py_var) == self.val(py_var):
+                    left_calc.remove(self.val(py_var, nounit))
+                    
+                if self.var(py_var, cond=True) == self.val(py_var, cond=True):
+                    right_calc.remove(self.var(py_var, cond=True))
+                elif self.res(py_var, cond=True) == self.val(py_var, cond=True):
+                    right_calc.remove(self.val(py_var, nounit, cond=True))
                 
-            # if self.var(py_var) == self.val(py_var):
-            #     if not split:
-            #         return self.name(py_var) + " &= " + " = ".join(calculations[1:])
-            #         #return "".join((self.name(py_var), " &= ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
-            #     else:
-            #         string = self.name(py_var) + " &= "
-            #         elem_old = 1
+            left_calc = [item for item in left_calc if item]
+            right_calc = [item for item in right_calc if item]
+            left_calc.extend(right_calc)
+            #print(calculations)
+            
+            add = self.check(py_var) if check else ""
+            
+            
+            if self.name(py_var) == "":
+                string = "&\\hspace{5.1mm} "
+            else:
+                string = self.name(py_var) + " &= "
+            #TODO eval kann nicht beim 0. Gleichheitszeichen abbrechen
+                
+            if not split:
+                for item in left_calc[:-1]:
+                    if item!= self.res(py_var, precision):
+                        string += item + " = "
+                    else: 
+                        string += "".join((item, " ", self.cond(py_var)," "))
+                
+                return string + left_calc[-1] + add#+ " = ".join(left_calc)
+            else:
+                #elem_old = 1
+                split_iter = iter(split)
+                splitter = next(split_iter)
+                
+                for i, item in enumerate(left_calc[:-1]):
+                    #print(string)
+                    #print(i, splitter, left_calc[i])
+                    if i+1 == splitter:
+                        if splitter == split[-1]:
+                            splitter = -1
+                        else:
+                            splitter = next(split_iter)
+                            
+                        if item!= self.res(py_var, precision):
+                            string += item + "\\notag\\\\\n&= "
+                        else: 
+                            string += "".join((item, "\\notag\\\\\n& ", self.cond(py_var)," "))
+                    else:
+                        if item!= self.res(py_var, precision):
+                            string += item + " = "
+                        else: 
+                            string += "".join((item, " ", self.cond(py_var)," "))
+                
+                #for elem in split:
+                #    string += " = ".join(left_calc[elem_old:elem]) + "\\notag\\\\\n&="
+                #    elem_old = elem
                     
-            #         for elem in split:
-            #             string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
-            #             elem_old = elem
-                        
-            #         string += " = ".join(calculations[elem_old:])
-            #         return string
-            # elif self.res(py_var) == self.val(py_var):
-            #     calculations.remove(self.val(py_var, nounit))
-            #     if not split:
-            #         return self.name(py_var) + " &= " + " = ".join(calculations)
-            #         #return "".join((self.name(py_var), " &= ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
-            #     else:
-            #         string = self.name(py_var) + " &= "
-            #         elem_old = 0
-                    
-            #         for elem in split:
-            #             string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
-            #             elem_old = elem
-                        
-            #         string += " = ".join(calculations[elem_old:])
-            #         return string            
-            # else:
-            #     if not split:
-            #         return self.name(py_var) + " &= " + " = ".join(calculations)
-            #         #return "".join((self.name(py_var), " &= ", self.var(py_var), " = ", self.val(py_var, nounit), self.sub_res(py_var), " = ", self.res(py_var, precision)))
-            #     else:
-            #         string = self.name(py_var) + " &= "
-            #         elem_old = 0
-                    
-            #         for elem in split:
-            #             string += " = ".join(calculations[elem_old:elem]) + "\\notag\\\\\n&="
-            #             elem_old = elem
-                        
-            #         string += " = ".join(calculations[elem_old:])
-            #         return string
+                #string += " = ".join(left_calc[elem_old:])
+                return string + left_calc[-1] + add
+            
         else:
             return self.short(py_var, precision)
     
   
     #TODO Warnung wenn Start- oder Endwert nicht gefunden
-    def mult(self, first: str, last: str, precision: int=None, nounit: bool=False) -> str:
+    def mult(self, first: str, last: str, precision: int=None, short: bool=False, nounit: bool=False, noval: bool=False, check: bool=False) -> str:
         """Displays multiple formulas at once."""
         back = ""
         found = False
@@ -212,17 +302,23 @@ class Calc2tex:
         for key, value in self.data.items():
             if key == first:
                 found = True
-            if found == True:
-                back += self.long(key, precision, nounit) + "\\\\\n"
+            if found:
+                if short:
+                    back += self.short(key, precision, check) + "\\\\\n"
+                else:
+                    back += self.long(key, precision, nounit, noval, None, check) + "\\\\\n"
             if key == last:
                 break
+        else:
+            #TODO falls kein passender Start-Wert gefunden: Schreibe Fragezeichen, damit align nicht leer bleibt
+            pass
                 
         return back[:-3]
     
     
     #TODO zweispaltige Tabelle, dafür val-counter in read_file einbauen
         #oder die \n in gesamten Rückgabestring zählen und beim x-ten \n aufteilen über minipage?
-    def table(self, columns: int=1) -> str:
+    def table(self, first: str=None, last: str=None, columns: int=1) -> str:
         """
         Extracts the variables with predefined values from the main dictionary and parses them into a long string,
         which evaluates ta a table in LaTeX.
@@ -233,23 +329,50 @@ class Calc2tex:
             The complete code block for displaying all input values.
 
         """
-        start = ("\\begin{table}[htbp]", "\t\\centering", "\t\\caption{" + language[self.lang]['table']['header']+"}", 
-                 "\t\\label{tab:input_val}", "\t\\begin{tabular}{lcc}", "\t\t\\toprule", 
-                 "".join(("\t\t", language[self.lang]['table']['var'], " & ", language[self.lang]['table']['val'], " & ", language[self.lang]['table']['unit'], "\\\\")), 
-                 "\t\t\\midrule", "")
-        end = ("\t\t\\bottomrule", "\t\\end{tabular}", "\\end{table}")
+        
+        if first == None:
+            start = ("\\begin{table}[htbp]", "\t\\centering", "\t\\caption{" + language[self.lang]['table']['header']+"}", 
+                     "\t\\label{tab:input_val}", "\t\\begin{tabular}{lcc}", "\t\t\\toprule", 
+                     "".join(("\t\t", language[self.lang]['table']['var'], " & ", language[self.lang]['table']['val'], " & ", language[self.lang]['table']['unit'], "\\\\")), 
+                     "\t\t\\midrule", "")
+            end = ("\t\t\\bottomrule", "\t\\end{tabular}", "\\end{table}")
+        else:
+            start = ("\t\\begin{tabular}{lcc}", "\t\t\\toprule", 
+                     "".join(("\t\t", language[self.lang]['table']['var'], " & ", language[self.lang]['table']['val'], " & ", language[self.lang]['table']['unit'], "\\\\")), 
+                     "\t\t\\midrule", "")
+            end = ("\t\t\\bottomrule", "\t\\end{tabular}")
         
         tab = "\n".join(start)
-        for value in self.data.values():
-            if value["var"] == "form":
-                break
-            
-            if value["tex_un"] == "":
-                unit = "-"
-            else:
-                unit = value["tex_un"]
+        
+        if first == None:
+            for key, value in self.data.items():
+                if value["var"] == "form" or key == last:
+                    break
+                
+                if value["tex_un"] == "":
+                    unit = "-"
+                else:
+                    unit = value["tex_un"]
                     
-            tab += "".join(("\t\t$", value["tex_var"], "$ &", str(round(value["res"], value["prec"])), " & $\\si{", unit, "}$\\\\\n"))
+                tab += "".join(("\t\t$", value["tex_var"], "$ &", str(round(value["res"], value["prec"])), " & $\\si{", unit, "}$\\\\\n"))
+                
+        else:
+            found = False
+            
+            for key, value in self.data.items():
+                
+                if value["tex_un"] == "":
+                    unit = "-"
+                else:
+                    unit = value["tex_un"]
+                    
+                if key == first:
+                    found = True
+                if found == True:
+                    tab += "".join(("\t\t$", value["tex_var"], "$ & \\num{", str(round(value["res"], value["prec"])), "} & $\\si{", unit, "}$\\\\\n"))
+                if key == last:
+                    break
+            
             
         tab += "\n".join(end)
         

@@ -50,4 +50,6 @@ units = {"singleun": {"m": "\\meter", "g": "\\gram", "A": "\\ampere", "C": "\\co
 
 keywords = ("acc", "type")
 
+check_symb = {"True": "\\qquad\\checkmark", "False": "\\qquad\\lightning"}
+
 types = ("iter", "if", "eval", "tab")       #noch nicht implementiert

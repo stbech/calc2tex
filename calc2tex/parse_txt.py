@@ -17,7 +17,7 @@ from calc2tex import calc_formula
 from .advanced_calc import evaluate
 from .settings import accuracy, keywords, types
 from .calc_unit import unit_to_tex
-from .helpers import is_float
+from .helpers import is_float, Calc2texError
 import json, os
 from importlib import resources
 
@@ -81,7 +81,11 @@ def read_file(filename: str) -> (dict, dict):
     
     #TODO falls Zeilenumbruch in line vorgesehen z.B durch "break" ?? -> zwei Zeilen zusammenfassen
     for line in input_list:                                 #extracts information from pre-processed file into data-container
-        print(line)
+        #TODO in try-except-Block um Fehler im Zeilenaufbau auszugeben: Could not process line XX
+        if line[1] in data:
+            line_def = data[line[1]]["line"]
+            print(f"Variable {line[1]} in txt-line {line[0]} already defined in line {line_def}-")
+        #print(data)
         if len(line) == 2:                                  #differentiats different cases by length of list
             command, bib_str = line[1].split(":")
             if command.strip() == "use":
@@ -147,7 +151,7 @@ def read_file(filename: str) -> (dict, dict):
                
         else:
             pass 
-        print(data[line[1]]) 
+        #print(data[line[1]]) 
         
     return data, bibs
 
@@ -172,11 +176,23 @@ def calculate(data: dict, bibs: dict) -> dict:
 
     """
     for key in data.keys():
-        data[key]["tex_un"] = unit_to_tex(data[key]["unit"])
+        try:
+            data[key]["tex_un"] = unit_to_tex(data[key]["unit"])
+        except Exception as e:
+            raise Calc2texError(f"Unit error in txt-line {data[key]['line']}") from e
+        
         if data[key]["var"] == "form":
-            data[key]["res"], data[key]["var_in"], data[key]["val_in"] = calc_formula.main(data[key]["form"], data, bibs)
+            try: 
+                data[key]["res"], data[key]["var_in"], data[key]["val_in"] = calc_formula.main(data[key]["form"], data, bibs)
+            except Exception as e:
+                raise Calc2texError(f"Could not calculate formula in txt-line {data[key]['line']}") from e
+        
         elif data[key]["var"] == "eval":
-            results = evaluate(data[key]["form"], data, bibs)
+            try:
+                results = evaluate(data[key]["form"], data, bibs)
+            except Exception as e:
+                raise Calc2texError(f"Could not determine eval in txt-line {data[key]['line']}") from e
+            
             for res_key, res_item in results.items():
                 data[key][res_key] = res_item
             #print('true')   # erzeuge cond_res, cond_var_in, cond_val_in

@@ -105,6 +105,7 @@ def split_quo(string: str) -> str:
             start, end = index_next - 1, index_next + 1
         
         if string[start] == ")":
+            #TODO funktioniert nicht richtig -> wenn Zähler und Nenner in Klammern?
             start = search_bracket(string, start, -1)
             numerator = split_sum(string[start+1:index_next-1])
         else:
@@ -334,15 +335,16 @@ def find_vars(formula: str) -> (str, list):
         
         if index_next - index_last != 0:
             var = formula[index_last:index_next].strip()
-            var_list.append(var)
-            if var == "sqrt":
-                short_formula += "~"
-            elif var == "abs":
-                short_formula += "$"
-            elif var in ("min", "max"):
-                short_formula += "°"
-            else:
-                short_formula += "?"
+            if var:     # do not append empty vars
+                var_list.append(var)
+                if var == "sqrt":
+                    short_formula += "~"
+                elif var == "abs":
+                    short_formula += "$"
+                elif var in ("min", "max"):
+                    short_formula += "°"
+                else:
+                    short_formula += "?"
                 
         if index_next == len(formula):
             break
@@ -350,7 +352,7 @@ def find_vars(formula: str) -> (str, list):
         short_formula += formula[index_next]
         index_last = index_next + 1
     
-    #print(formula, short_formula)
+    #print(formula, short_formula, var_list)
     return short_formula, var_list
 
 
@@ -416,7 +418,8 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
     
     for i, var in enumerate(var_list):
         if is_float(var):
-            continue
+            if '.' in var:  # if float: wrap var in \num -> siunitx can change comma
+                tex_val[i] = var_list[i] = "\\num{" + var + "}"
         elif var in tex_commands:
             py_val[i] = "np." + var
             if var != "e":

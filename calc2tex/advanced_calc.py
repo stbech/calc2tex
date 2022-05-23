@@ -30,7 +30,7 @@ def evaluate(formula: str, data: dict, bibs: dict) -> dict:
     cond_pos = search_cond.search(formula)
     cond_count = search_cond.findall(formula)
     
-    if len(cond_count) > 1:
+    if len(cond_count) > 1:     # More than one conditional expression recognized
         raise Exception("To many conditionals in eval")
         
     if cond_pos == None:
@@ -44,41 +44,40 @@ def evaluate(formula: str, data: dict, bibs: dict) -> dict:
         right_form = formula[cond_pos.end():].strip()
         delimiter = cond_count[0]
         
-    print(left_form, delimiter, right_form)
-        
     if is_float(left_form):
         left_dict = {"res": intfloat(left_form), "var_in": None, "val_in": None,}
     else:
         left_tuple = calc_formula.main(left_form, data, bibs)
-        left_dict = {"res": left_tuple[0], "var_in": left_tuple[1], "val_in": left_tuple[1],}     
+        left_dict = {"res": left_tuple[0], "var_in": left_tuple[1], "val_in": left_tuple[2],}     
     if is_float(right_form):
         right_dict = {"cond_res": intfloat(right_form), "cond_var_in": None, "cond_val_in": None,}
     else:
         right_tuple = calc_formula.main(right_form, data, bibs)
         right_dict = {"cond_res": right_tuple[0], "cond_var_in": right_tuple[1], "cond_val_in": right_tuple[2],}
-     
-    print(left_dict, right_dict)   
+      
     fulfilled = False
     
-    if (delimiter == "<") and (left_dict["res"] < right_dict["cond_res"]):
-        fulfilled = True
-    elif (delimiter == "<=") and (left_dict["res"] <= right_dict["cond_res"]):
-        fulfilled = True
-    elif (delimiter == ">") and (left_dict["res"] > right_dict["cond_res"]):
-        fulfilled = True 
-    elif (delimiter == ">=") and (left_dict["res"] >= right_dict["cond_res"]):
-        fulfilled = True 
-    elif (delimiter == "!=") and (left_dict["res"] != right_dict["cond_res"]):
-        fulfilled = True 
-    elif (delimiter == "=" or delimiter == "==") and (left_dict["res"] == right_dict["cond_res"]):
-        fulfilled = True 
-    print(fulfilled)
+    if (delimiter == "<"):
+        tex_delimiter = "<"
+        fulfilled = True if (left_dict["res"] < right_dict["cond_res"]) else False
+    elif (delimiter == "<="):
+        tex_delimiter = "\\leq"
+        fulfilled = True if (left_dict["res"] <= right_dict["cond_res"]) else False
+    elif (delimiter == ">"):
+        tex_delimiter = ">"
+        fulfilled = True if (left_dict["res"] > right_dict["cond_res"]) else False
+    elif (delimiter == ">="):
+        tex_delimiter = "\\geq"
+        fulfilled = True if (left_dict["res"] >= right_dict["cond_res"]) else False
+    elif (delimiter == "!="):
+        tex_delimiter = "\\neq"
+        fulfilled = True if (left_dict["res"] != right_dict["cond_res"]) else False
+    elif (delimiter == "=" or delimiter == "=="):
+        tex_delimiter = "=="
+        fulfilled = True if (left_dict["res"] == right_dict["cond_res"]) else False
     
-    #if len()
-    
-    # eval raus an <=> splitten, beide Teile separat von calc_formula verarbeiten lassen
     #TODO on change to python 3.9 -> dict merge with |
-    return {"cond": delimiter,**left_dict, **right_dict, "bool": fulfilled}#{"res": None, "var_in": None, "val_in": None, "cond_res": None, "cond_var_in": None, "cond_val_in": None,}
+    return {"cond": tex_delimiter,**left_dict, **right_dict, "bool": fulfilled}#{"res": None, "var_in": None, "val_in": None, "cond_res": None, "cond_var_in": None, "cond_val_in": None,}
    
     
    
