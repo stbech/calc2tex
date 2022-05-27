@@ -24,11 +24,13 @@
 
 language = {"DE": 
                 {"table":
-                     {"header": 'Eingangsgr"o"sen', "var": "Variable", "val": "Wert", "unit": "Einheit"}
+                     {"header": 'Eingangsgr"o"sen', "var": "Variable", "val": "Wert", "unit": "Einheit"},
+                "if": "falls",
                 },
             "EN": 
                 {"table": 
-                     {"header": "input values", "var": "variable", "val": "value", "unit": "unit"}
+                     {"header": "input values", "var": "variable", "val": "value", "unit": "unit"},
+                "if": "if",
                 }
             }
 
@@ -49,6 +51,8 @@ units = {"singleun": {"m": "\\meter", "g": "\\gram", "A": "\\ampere", "C": "\\co
              "gon": "\\gon", "deg": "\\degree"}}
 
 keywords = ("acc", "type")
+
+quotation_marks = ("\\lq", "\\text{\\rq}")
 
 check_symb = {"True": "\\qquad\\checkmark", "False": "\\qquad\\lightning"}
 

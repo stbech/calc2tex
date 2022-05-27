@@ -10,16 +10,109 @@
 """
 
 
-from .helpers import is_float, search_char, search_bracket, exponential_rounding, intfloat
-#from .settings import mult_sign #ersetze mit settings.mult_sign
-from calc2tex import settings
+from .helpers import is_float, intfloat
+from .settings import quotation_marks
 import re
-#Imports for evaluating formula:
-import numpy as np
-from calc2tex import trigo
 from calc2tex import calc_formula
 
 search_cond = re.compile(r"[!<=>]=?")  #a pattern that recognizes conditional in expression
+
+
+
+def delimiters(delimiter: str, left_val: float, right_val: float) -> (str, bool):
+
+    if (delimiter == "<"):
+        tex_delimiter = "<"
+        fulfilled = True if (left_val < right_val) else False
+    elif (delimiter == "<="):
+        tex_delimiter = "\\leq"
+        fulfilled = True if (left_val <= right_val) else False
+    elif (delimiter == ">"):
+        tex_delimiter = ">"
+        fulfilled = True if (left_val > right_val) else False
+    elif (delimiter == ">="):
+        tex_delimiter = "\\geq"
+        fulfilled = True if (left_val >= right_val) else False
+    elif (delimiter == "!="):
+        tex_delimiter = "\\neq"
+        fulfilled = True if (left_val != right_val) else False
+    elif (delimiter == "=" or delimiter == "=="):
+        tex_delimiter = "="
+        fulfilled = True if (left_val == right_val) else False
+        
+    return tex_delimiter, fulfilled
+
+
+#TOOD verschachtelte IFs!
+#TODO Werte eingesetzt -> schon auf richtiges reduziert oder alle dargestellt
+def ifthenelse(formula: str, data: dict, bibs: dict) -> dict:
+    
+    formula = formula.lstrip("if")          # remove leading if 
+    
+    parts = formula.split("elif")           # split at every elif
+    parts.extend(parts[-1].split("else"))   # get last element and split at else
+    parts.pop(-3)                           # remove element containing else
+    
+    parts = [elem.strip(" :") for elem in parts]
+    form_dicts = []
+    result = None
+    
+    for elem in parts[:-1]:             # iterate over every if/elif condition
+        cond, form = elem.split(":")
+        cond_pos = search_cond.search(cond)
+        
+        left = cond[:cond_pos.start()].strip()
+        right = cond[cond_pos.end():].strip()
+        delimiter = cond[cond_pos.start():cond_pos.end()]
+   
+        txt_dict = {"left": left, "cond": delimiter, "right": right, "form": form.strip()}
+        
+        if is_float(left):
+            left_dict = {"left_res": intfloat(left), "left_var_in": "\\num{" + left + "}", "left_val_in": None,}
+        elif left.startswith('"') or left.startswith("'"):
+            left_dict = {"left_res": left.strip("\"'"), "left_var_in": quotation_marks[0] + left.strip("\"'") + quotation_marks[1], "left_val_in": None,}
+        else:
+            left_tuple = calc_formula.main(left, data, bibs)
+            left_dict = {"left_res": left_tuple[0], "left_var_in": left_tuple[1], "left_val_in": left_tuple[2],}     
+        
+        if is_float(right):
+            right_dict = {"right_res": intfloat(right), "right_var_in": "\\num{" + right + "}", "right_val_in": None,}
+        elif right.startswith('"') or right.startswith("'"):
+            right_dict = {"right_res": right.strip("\"'"), "right_var_in": quotation_marks[0] + right.strip("\"'") + quotation_marks[1], "right_val_in": None,}
+        else:
+            right_tuple = calc_formula.main(right, data, bibs)
+            right_dict = {"right_res": right_tuple[0], "right_var_in": right_tuple[1], "right_val_in": right_tuple[2],}
+         
+        form_tuple = calc_formula.main(form, data, bibs)
+        form_dict = {"res": form_tuple[0], "var_in": form_tuple[1], "val_in": form_tuple[2],} 
+        
+        tex_delimiter, fulfilled = delimiters(delimiter, left_dict["left_res"], right_dict["right_res"])
+
+        form_dicts.append({**txt_dict, **left_dict, "tex_cond": tex_delimiter, **right_dict, **form_dict})
+        
+        if fulfilled and result == None:
+            result = form_dict["res"]
+            shorts = form_dict
+    
+    
+    else_tuple = calc_formula.main(parts[-1], data, bibs)
+    else_dict = {"res": else_tuple[0], "var_in": else_tuple[1], "val_in": else_tuple[2],} 
+    
+    if result == None:
+        result = else_dict["res"]
+        shorts = else_dict
+     
+    # combine to one var_in
+    var_text = "\\begin{cases}\n"
+    iftext = ("falls", "")
+    
+    for form_dict in form_dicts:
+        var_text += "".join(("\t", form_dict["var_in"], " & \\text{", iftext[0], " $", form_dict["left_var_in"], form_dict["tex_cond"], form_dict["right_var_in"], "$}\\\\\n"))
+     
+    var_text += "".join(("\t", else_dict["var_in"], " & \\text{", iftext[1], "}\\\\\n"))
+    var_text += "\\end{cases}\\quad"
+        
+    return {"var_in": var_text, "val_in": shorts["val_in"], "res": result, "short_var_in": shorts["var_in"], "short_val_in": shorts["val_in"],}
 
 
 # Conditionals: <; >; <=; >=; ==; =; !=; 
@@ -55,29 +148,30 @@ def evaluate(formula: str, data: dict, bibs: dict) -> dict:
         right_tuple = calc_formula.main(right_form, data, bibs)
         right_dict = {"cond_res": right_tuple[0], "cond_var_in": right_tuple[1], "cond_val_in": right_tuple[2],}
       
-    fulfilled = False
+    #fulfilled = False
     
-    if (delimiter == "<"):
-        tex_delimiter = "<"
-        fulfilled = True if (left_dict["res"] < right_dict["cond_res"]) else False
-    elif (delimiter == "<="):
-        tex_delimiter = "\\leq"
-        fulfilled = True if (left_dict["res"] <= right_dict["cond_res"]) else False
-    elif (delimiter == ">"):
-        tex_delimiter = ">"
-        fulfilled = True if (left_dict["res"] > right_dict["cond_res"]) else False
-    elif (delimiter == ">="):
-        tex_delimiter = "\\geq"
-        fulfilled = True if (left_dict["res"] >= right_dict["cond_res"]) else False
-    elif (delimiter == "!="):
-        tex_delimiter = "\\neq"
-        fulfilled = True if (left_dict["res"] != right_dict["cond_res"]) else False
-    elif (delimiter == "=" or delimiter == "=="):
-        tex_delimiter = "=="
-        fulfilled = True if (left_dict["res"] == right_dict["cond_res"]) else False
+    tex_delimiter, fulfilled = delimiters(delimiter, left_dict["res"], right_dict["cond_res"])
+    # if (delimiter == "<"):
+    #     tex_delimiter = "<"
+    #     fulfilled = True if (left_dict["res"] < right_dict["cond_res"]) else False
+    # elif (delimiter == "<="):
+    #     tex_delimiter = "\\leq"
+    #     fulfilled = True if (left_dict["res"] <= right_dict["cond_res"]) else False
+    # elif (delimiter == ">"):
+    #     tex_delimiter = ">"
+    #     fulfilled = True if (left_dict["res"] > right_dict["cond_res"]) else False
+    # elif (delimiter == ">="):
+    #     tex_delimiter = "\\geq"
+    #     fulfilled = True if (left_dict["res"] >= right_dict["cond_res"]) else False
+    # elif (delimiter == "!="):
+    #     tex_delimiter = "\\neq"
+    #     fulfilled = True if (left_dict["res"] != right_dict["cond_res"]) else False
+    # elif (delimiter == "=" or delimiter == "=="):
+    #     tex_delimiter = "=="
+    #     fulfilled = True if (left_dict["res"] == right_dict["cond_res"]) else False
     
     #TODO on change to python 3.9 -> dict merge with |
-    return {"cond": tex_delimiter,**left_dict, **right_dict, "bool": fulfilled}#{"res": None, "var_in": None, "val_in": None, "cond_res": None, "cond_var_in": None, "cond_val_in": None,}
+    return {"cond": tex_delimiter, **left_dict, **right_dict, "bool": fulfilled}#{"res": None, "var_in": None, "val_in": None, "cond_res": None, "cond_var_in": None, "cond_val_in": None,}
    
     
    

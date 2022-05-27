@@ -10,8 +10,8 @@
 """
 
 
-from .helpers import is_float, search_char, search_bracket, exponential_rounding
-from .settings import mult_sign #ersetze mit settings.mult_sign
+from .helpers import is_float, search_char, search_bracket, exponential_rounding, Calc2texError
+from .settings import mult_sign, quotation_marks #ersetze mit settings.mult_sign
 from calc2tex import settings
 import re
 #Imports for evaluating formula:
@@ -19,8 +19,8 @@ import numpy as np
 from calc2tex import trigo
 
 #TODO alles in settings
-tex_commands = ("e", "pi", "sin", "cos", "tan", "sqrt", "arccos", "arcsin", "arctan", "arcsinh", "arccosh", "arctanh", "sinh", "cosh", "tanh")
-trigo_list = ("sinD", "cosD", "tanD", "arccosD", "arcsinD", "arctanD", "sinG", "cosG", "tanG", "arccosG", "arcsinG", "arctanG")
+tex_commands = ("e", "pi", "log", "sin", "cos", "tan", "sqrt", "arccos", "arcsin", "arctan", "arcsinh", "arccosh", "arctanh", "sinh", "cosh", "tanh")
+trigo_list = ("sinR", "cosR", "tanR", "arccosR", "arcsinR", "arctanR", "sinD", "cosD", "tanD", "arccosD", "arcsinD", "arctanD", "sinG", "cosG", "tanG", "arccosG", "arcsinG", "arctanG")
 funct_indicators = {"?(": ("?(", ")"), "~(": ("?{", "}"), "$(": ("?[", "]"), "°(": ("?´", "`")}
 chars_in_formula = ("/", "*", "(", ")", "+", "-", "%", ",") #are not allowed in the dictionary-keys
 search_minmax = re.compile(r"(^|[ ,*/%+()-]+)(min\()|(max\()")  #a pattern that recognizes min- or max-functions in a string
@@ -434,13 +434,22 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
             tex_val[i] = var_list[i] = "\\" + var
         elif var == "abs":
             tex_val[i] = var_list[i] = ""
+        elif var.startswith("'") or var.startswith('"'):
+            tex_val[i] = var_list[i] = quotation_marks[0] + var.strip("\"'") + quotation_marks[1]
         elif var in data:
             py_val[i] = data[var]["res"]
-            value_in = exponential_rounding(data[var]["res"], data[var]["prec"])
+            if data[var]["var"] == "str":
+                tex_val[i] = quotation_marks[0] + data[var]["res"] + quotation_marks[1]
+                var_list[i] = data[var]["tex_var"]
+                py_val[i] = "'" + data[var]["res"] + "'"
+                #print(py_val[i], type(py_val[i]))
+            else:
+                #print(py_val[i], type(py_val[i]))
+                value_in = exponential_rounding(data[var]["res"], data[var]["prec"])
             #str(round(data[var]["res"], None if data[var]["prec"] == 0 else data[var]["prec"]))      
                 # Integer, falls Rundung auf Null
-            tex_val[i] = "".join(("\\SI{", value_in, "}{", data[var]["tex_un"], "}"))
-            var_list[i] = data[var]["tex_var"]
+                tex_val[i] = "".join(("\\SI{", value_in, "}{", data[var]["tex_un"], "}"))
+                var_list[i] = data[var]["tex_var"]
         else:
             found = False
             
@@ -454,6 +463,7 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
                     break #TODO nur break, wenn anderer Teil erreicht automatisch nicht gefunden
             
             if found == False:
+                print(f"{var} not found.")
                 #nothing found
                 #TODO raise exception
                 pass
@@ -597,6 +607,16 @@ def add_brackets(tex_val: str) -> str:
 
 
 
+def check_brackets(formula: str) -> None:
+    left_brackets, right_brackets = formula.count("("), formula.count(")")
+    if left_brackets > right_brackets:
+        raise Calc2texError("Number of opening brackets greater than number of closing")
+    if left_brackets < right_brackets:
+        raise Calc2texError("Number of closing brackets greater than number of opening")
+    #print(formula, left_brackets, right_brackets)
+
+
+
 def main(formula: str, data: dict, bibs: dict) -> (float, str, str):
     """
     Calculates the result of a formula and its LaTeX-representations given all other variables.
@@ -620,6 +640,7 @@ def main(formula: str, data: dict, bibs: dict) -> (float, str, str):
         The formula, where the variables are replaced by their values and units.
 
     """
+    check_brackets(formula)
     short_formula, var_list = find_vars(formula)
     
     short_tex = formula_to_tex(short_formula)
