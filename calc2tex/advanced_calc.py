@@ -43,6 +43,32 @@ def delimiters(delimiter: str, left_val: float, right_val: float) -> (str, bool)
     return tex_delimiter, fulfilled
 
 
+
+def string_comb(formula: str, data: dict, bibs: dict) -> dict:
+    
+    formula = formula.lstrip("string")      # remove leading if 
+    
+    parts = formula.split("+")           # split at every elif
+    #parts = [part.strip() for part in parts]
+    
+    res = ""
+    
+    #print(parts)
+    for part in parts:
+        part = part.strip()
+        if (part.startswith("'") and part.endswith("'")) or (part.startswith('"') and part.endswith('"')):
+            res += part.strip("\"'")#print(part)
+        else:
+            #TODO vereinfacht keine Multiplikationen/Divisionen zulassen und nur auf data[part][res] zugreifen
+            part_tuple = calc_formula.main(part, data, bibs)
+            res += str(part_tuple[0])
+            #print(part_tuple)
+            
+    #print(res)
+    return {"res": res}
+    
+
+
 #TOOD verschachtelte IFs!
 #TODO Werte eingesetzt -> schon auf richtiges reduziert oder alle dargestellt
 def ifthenelse(formula: str, data: dict, bibs: dict) -> dict:

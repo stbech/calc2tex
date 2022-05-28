@@ -14,7 +14,7 @@
 #TODO default Winkel-Einheit setzen
 
 from calc2tex import calc_formula
-from .advanced_calc import evaluate, ifthenelse
+from .advanced_calc import evaluate, ifthenelse, string_comb
 from .settings import accuracy, keywords, types
 from .calc_unit import unit_to_tex
 from .helpers import is_float, Calc2texError
@@ -75,6 +75,9 @@ def read_file(filename: str) -> (dict, dict):
         elif var == "if":
             return {"line": line, "var": var, "tex_var": tex_var, "res": None, 
                     "unit": args[1], "tex_un": None, "type": args[3], "form": args[0], "prec": args[2]}
+        elif var == "str_form":
+            return {"line": line, "var": var, "tex_var": tex_var, "res": None, 
+                    "unit": args[1], "tex_un": None, "type": args[3], "form": args[0], "prec": args[2]}
         else:
             return {"line": line, "var": var, "tex_var": tex_var, "res": None, 
                     "unit": args[1], "tex_un": None, "type": args[3], "form": args[0], "prec": args[2]}
@@ -102,7 +105,8 @@ def read_file(filename: str) -> (dict, dict):
                 #dort als json oder txt speichern, letzteres geringerer Platzbedarf, langsameres parsen; abhängig von Dateiendung verarbeiten
          
         elif (line[3].startswith("'") and line[3].endswith("'")) or (line[3].startswith('"') and line[3].endswith('"')):
-            if line[2].count("'") > 2 or line[2].count("'") > 2:
+            print(line)
+            if line[3].count("'") > 2 or line[3].count("'") > 2:
                 data[line[1]] = input_dict(int(line[0]), "form", line[2], line[3], line[4], 0, 0)
             else:
                 data[line[1]] = input_dict(int(line[0]), "str", line[2], line[3], line[4])
@@ -150,17 +154,22 @@ def read_file(filename: str) -> (dict, dict):
             if len(line) - keys == 5:
                 #TODO Groß-/Kleinschreibung akzeptieren
                 #TODO eval, if ohne tex_var funktioniert noch nicht?
+                print(line[3])
                 if line[3].startswith("eval "):
                     data[line[1]] = input_dict(int(line[0]), "eval", line[2], line[3], line[4], precision, form_type)
                 elif line[3].startswith("if "):
                     data[line[1]] = input_dict(int(line[0]), "if", line[2], line[3], line[4], precision, form_type)
+                elif line[3].startswith("string "):
+                    data[line[1]] = input_dict(int(line[0]), "str_form", line[2], line[3], line[4], precision, form_type)
                 else:
                     data[line[1]] = input_dict(int(line[0]), "form", line[2], line[3], line[4], precision, form_type)
             else:
-                if line[3].startswith("eval "):
+                if line[2].startswith("eval "):
                     data[line[1]] = input_dict(int(line[0]), "eval", line[1], line[2], line[3], precision, form_type)
-                elif line[3].startswith("if "):
+                elif line[2].startswith("if "):
                     data[line[1]] = input_dict(int(line[0]), "if", line[1], line[2], line[3], precision, form_type)
+                elif line[2].startswith("string "):
+                    data[line[1]] = input_dict(int(line[0]), "str_form", line[1], line[2], line[3], precision, form_type)
                 else:
                     data[line[1]] = input_dict(int(line[0]), "form", line[1], line[2], line[3], precision, form_type)
                
@@ -222,6 +231,16 @@ def calculate(data: dict, bibs: dict) -> dict:
             for res_key, res_item in results.items():
                 data[key][res_key] = res_item
             #print('true')   # erzeuge cond_res, cond_var_in, cond_val_in
+        
+        elif data[key]["var"] == "str_form":
+            print(data[key])
+            try:
+                results = string_comb(data[key]["form"], data, bibs)
+            except Exception as e:
+                raise Calc2texError(f"Could not determine string in txt-line {data[key]['line']}") from e
+            
+            for res_key, res_item in results.items():
+                data[key][res_key] = res_item
         
     return data
 

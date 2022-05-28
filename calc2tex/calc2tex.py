@@ -143,7 +143,7 @@ class Calc2tex:
         if self._search(py_var, key) == "??":
             return "??"
 
-        if self._search(py_var, "var") == "str":
+        if self._search(py_var, "var") == "str" or self._search(py_var, "var") == "str_form":
             # TODO anpassen, ob Einheit gewollt
             # TODO Option Anführungszeichen zu zeigen? -> abhängig davon, ob in Matheumgebung (ja) oder nicht (nein)
             return "".join(("\\text{", self._search(py_var, key), "}\\SI{}{", self.unit(py_var), "}"))
