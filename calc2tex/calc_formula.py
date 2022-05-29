@@ -26,6 +26,7 @@ chars_in_formula = ("/", "*", "(", ")", "+", "-", "%", ",") #are not allowed in 
 search_minmax = re.compile(r"(^|[ ,*/%+()-]+)(min\()|(max\()")  #a pattern that recognizes min- or max-functions in a string
 
 #TODO x**x**x wird in Python als x**(x**x) behandelt -> Darstellung in Latex
+#TODO Befehl für minmax inline in Latex min(a, b)
 
 
 def split_mult(string: str) -> str:
@@ -422,7 +423,9 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
                 tex_val[i] = var_list[i] = "\\num{" + var + "}"
         elif var in tex_commands:
             py_val[i] = "np." + var
-            if var != "e":
+            if var == 'log':
+                tex_val[i] = var_list[i] = "\\ln"
+            elif var != "e":
                 tex_val[i] = var_list[i] = "\\" + var
         elif var in trigo_list:
             py_val[i] = "trigo." + var
@@ -448,7 +451,10 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
                 value_in = exponential_rounding(data[var]["res"], data[var]["prec"])
             #str(round(data[var]["res"], None if data[var]["prec"] == 0 else data[var]["prec"]))      
                 # Integer, falls Rundung auf Null
-                tex_val[i] = "".join(("\\SI{", value_in, "}{", data[var]["tex_un"], "}"))
+                if data[var]["tex_un"] == "":
+                    tex_val[i] = "".join(("\\num{", value_in, "}"))
+                else:
+                    tex_val[i] = "".join(("\\SI{", value_in, "}{", data[var]["tex_un"], "}"))
                 var_list[i] = data[var]["tex_var"]
         else:
             found = False

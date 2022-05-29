@@ -215,13 +215,13 @@ class Calc2tex:
     def _long_form(self, py_var: str, precision: int=None, nounit: bool=False, noval: bool=False, split: tuple=None) -> str:
         calculations = [self.var(py_var), self.val(py_var, nounit), self.sub_res(py_var), self.res(py_var, precision)]
         calculations = [item for item in calculations if item]
-
+            
         if noval:
             calculations.remove(self.val(py_var, nounit))
         else:
             if self.var(py_var) == self.val(py_var):
                 calculations.remove(self.var(py_var))
-            elif self.res(py_var) == self.val(py_var):
+            if self.res(py_var, precision) == self.val(py_var):
                 calculations.remove(self.val(py_var, nounit))
 
         if self.name(py_var) == "":
@@ -254,12 +254,12 @@ class Calc2tex:
         else:
             if self.var(py_var) == self.val(py_var):
                 left_calc.remove(self.var(py_var))
-            elif self.res(py_var) == self.val(py_var):
+            if self.res(py_var) == self.val(py_var):
                 left_calc.remove(self.val(py_var, nounit))
 
             if self.var(py_var, "cond_var_in") == self.val(py_var, False, "cond_val_in"):
                 right_calc.remove(self.var(py_var, "cond_var_in"))
-            elif self.res(py_var, "cond_res") == self.val(py_var, False, "cond_val_in"):
+            if self.res(py_var, precision, "cond_res") == self.val(py_var, False, "cond_val_in"):
                 right_calc.remove(self.val(py_var, nounit, "cond_val_in"))
 
         left_calc = [item for item in left_calc if item]
@@ -355,8 +355,7 @@ class Calc2tex:
             if key == last:
                 break
         else:
-            # TODO falls kein passender Start-Wert gefunden: Schreibe Fragezeichen, damit align nicht leer bleibt
-            pass
+            back = "\\text{mult}??   "  # start variable not found
 
         return back[:-3]
 

@@ -105,7 +105,6 @@ def read_file(filename: str) -> (dict, dict):
                 #dort als json oder txt speichern, letzteres geringerer Platzbedarf, langsameres parsen; abhängig von Dateiendung verarbeiten
          
         elif (line[3].startswith("'") and line[3].endswith("'")) or (line[3].startswith('"') and line[3].endswith('"')):
-            print(line)
             if line[3].count("'") > 2 or line[3].count("'") > 2:
                 data[line[1]] = input_dict(int(line[0]), "form", line[2], line[3], line[4], 0, 0)
             else:
@@ -153,8 +152,6 @@ def read_file(filename: str) -> (dict, dict):
                             
             if len(line) - keys == 5:
                 #TODO Groß-/Kleinschreibung akzeptieren
-                #TODO eval, if ohne tex_var funktioniert noch nicht?
-                print(line[3])
                 if line[3].startswith("eval "):
                     data[line[1]] = input_dict(int(line[0]), "eval", line[2], line[3], line[4], precision, form_type)
                 elif line[3].startswith("if "):
@@ -233,7 +230,7 @@ def calculate(data: dict, bibs: dict) -> dict:
             #print('true')   # erzeuge cond_res, cond_var_in, cond_val_in
         
         elif data[key]["var"] == "str_form":
-            print(data[key])
+            #print(data[key])
             try:
                 results = string_comb(data[key]["form"], data, bibs)
             except Exception as e:
