@@ -133,7 +133,7 @@ def ifthenelse(formula: str, data: dict, bibs: dict) -> dict:
     iftext = ("falls", "")
     
     for form_dict in form_dicts:
-        var_text += "".join(("\t", form_dict["var_in"], " & \\text{", iftext[0], " $", form_dict["left_var_in"], form_dict["tex_cond"], form_dict["right_var_in"], "$}\\\\\n"))
+        var_text += "".join(("\t", form_dict["var_in"], " & \\text{", iftext[0], " $", form_dict["left_var_in"], " ", form_dict["tex_cond"], " ", form_dict["right_var_in"], "$}\\\\\n"))
      
     var_text += "".join(("\t", else_dict["var_in"], " & \\text{", iftext[1], "}\\\\\n"))
     var_text += "\\end{cases}\\quad"

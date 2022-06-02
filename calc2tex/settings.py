@@ -52,7 +52,7 @@ units = {"singleun": {"m": "\\meter", "g": "\\gram", "A": "\\ampere", "C": "\\co
 
 keywords = ("acc", "type")
 
-quotation_marks = ("\\lq", "\\text{\\rq}")
+quotation_marks = ("\\lq ", "\\text{\\rq}")
 
 check_symb = {"True": "\\qquad\\checkmark", "False": "\\qquad\\lightning"}
 

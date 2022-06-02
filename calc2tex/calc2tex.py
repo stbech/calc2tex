@@ -146,7 +146,7 @@ class Calc2tex:
         if self._search(py_var, "var") == "str" or self._search(py_var, "var") == "str_form":
             # TODO anpassen, ob Einheit gewollt
             # TODO Option Anführungszeichen zu zeigen? -> abhängig davon, ob in Matheumgebung (ja) oder nicht (nein)
-            return "".join(("\\text{", self._search(py_var, key), "}\\SI{}{", self.unit(py_var), "}"))
+            return "".join(("\\text{", self._search(py_var, key), "}\\si{", self.unit(py_var), "}"))
         else:
             if self.unit(py_var) == "":
                 return "".join(("\\num{", self.raw(py_var, precision, key), "}"))
@@ -354,13 +354,13 @@ class Calc2tex:
                     back += self.long(key, precision, nounit, noval, None, check) + "\\\\\n"
             if key == last:
                 break
-        else:
+            
+        if found == False:
             back = "\\text{mult}??   "  # start variable not found
 
         return back[:-3]
 
-    # TODO zweispaltige Tabelle, dafür val-counter in read_file einbauen
-        # oder die \n in gesamten Rückgabestring zählen und beim x-ten \n aufteilen über minipage?
+    # TODO table funktioniert nicht ohne first, last anzugeben -> fix value table
 
     def table(self, first: str = None, last: str = None, columns: int = 1) -> str:
         """
@@ -375,18 +375,32 @@ class Calc2tex:
         """
 
         if first == None:
-            start = ("\\begin{table}[htbp]", "\t\\centering", "\t\\caption{" + language[self.lang]['table']['header']+"}",
-                     "\t\\label{tab:input_val}", "\t\\begin{tabular}{lcc}", "\t\t\\toprule",
-                     "".join(("\t\t", language[self.lang]['table']['var'], " & ", language[self.lang]['table']['val'], " & ", language[self.lang]['table']['unit'], "\\\\")),
-                     "\t\t\\midrule", "")
+            if columns >= 2:
+                header = " & ".join(["".join((language[self.lang]['table']['var'], " & ", language[self.lang]['table']['val'], " & ", language[self.lang]['table']['unit']))]*columns)
+                start = ("\\begin{table}[htbp]", "\t\\centering", "\t\\caption{" + language[self.lang]['table']['header']+"}",
+                         "\t\\label{tab:input_val}", "".join(("\t\\begin{tabular}{", "@{\\hspace{15mm}}".join(columns*["lcc"]), "}")), "\t\t\\toprule",
+                         "".join(("\t\t", header, "\\\\")), "\t\t\\midrule", "")
+            else:
+                start = ("\\begin{table}[htbp]", "\t\\centering", "\t\\caption{" + language[self.lang]['table']['header']+"}",
+                         "\t\\label{tab:input_val}", "\t\\begin{tabular}{lcc}", "\t\t\\toprule",
+                         "".join(("\t\t", language[self.lang]['table']['var'], " & ", language[self.lang]['table']['val'], " & ", language[self.lang]['table']['unit'], "\\\\")),
+                         "\t\t\\midrule", "")
+                
             end = ("\t\t\\bottomrule", "\t\\end{tabular}", "\\end{table}")
         else:
-            start = ("\t\\begin{tabular}{lcc}", "\t\t\\toprule",
+            if columns >= 2:
+                header = " & ".join(["".join((language[self.lang]['table']['var'], " & ", language[self.lang]['table']['val'], " & ", language[self.lang]['table']['unit']))]*columns)
+                start = ("".join(("\t\\begin{tabular}{", "@{\\hspace{15mm}}".join(columns*["lcc"]), "}")), "\t\t\\toprule",
+                         "".join(("\t\t", header, "\\\\")), "\t\t\\midrule", "")
+            else:
+                start = ("\t\\begin{tabular}{lcc}", "\t\t\\toprule",
                      "".join(("\t\t", language[self.lang]['table']['var'], " & ", language[self.lang]['table']['val'], " & ", language[self.lang]['table']['unit'], "\\\\")),
                      "\t\t\\midrule", "")
+                
             end = ("\t\t\\bottomrule", "\t\\end{tabular}")
 
-        tab = "\n".join(start)
+
+        tab = ""
 
         if first == None:
             for key, value in self.data.items():
@@ -416,7 +430,33 @@ class Calc2tex:
                     tab += "".join(("\t\t$", value["tex_var"], "$ & \\num{", str(round(value["res"], value["prec"])), "} & $\\si{", unit, "}$\\\\\n"))
                 if key == last:
                     break
-
-        tab += "\n".join(end)
+         
+                
+        if columns >= 2:
+            length = tab.count("\n")
+            
+            new_line, old_line = 0, 0
+            
+            column_list = []
+            for _ in range(columns):
+                for _ in range(length//columns if length % columns == 0 else length//columns + 1):
+                    new_line = tab.find("\n", new_line+1)
+                    
+                column_list.append(tab[old_line: new_line].split("\n"))
+                old_line = new_line + 1
+            
+            max_length = len(column_list[0])
+            
+            tab = ""
+            for i in range(len(column_list[0])):
+                line = "\t\t"
+                for k in range(columns):
+                    if i < len(column_list[k]) :
+                        line += column_list[k][i].lstrip("\t").rstrip("\\\\\n") + " & "
+                
+                tab += line[:-3] + "\\\\\n"
+            
+        
+        tab = "\n".join(start) + tab + "\n".join(end)
 
         return tab
