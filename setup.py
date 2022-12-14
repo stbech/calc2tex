@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 HERE = pathlib.Path(__file__).parent
 
-VERSION = "0.0.2"
+VERSION = "0.0.4"
 PACKAGE_NAME = "calc2tex"
 AUTHOR = "Stefan Becherer"
 AUTHOR_EMAIL = "becherer.stefan1@gmail.com"
@@ -16,7 +16,7 @@ LONG_DESC_TYPE = "text/markdown"
 
 INSTALL_REQUIRES = [
     "numpy",
-    "pint"
+    #"pint"
 ]
 
 setup(name=PACKAGE_NAME,

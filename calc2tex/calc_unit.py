@@ -61,7 +61,7 @@ def subunit_to_tex(split: str) -> str:
 
     
     return "??"
-
+#TODO print warning
 
 
 def unit_to_tex(unit: str) -> str:
@@ -86,7 +86,7 @@ def unit_to_tex(unit: str) -> str:
     index_last = 0
     tex_unit = ""
     
-    while truth:
+    while truth:    #TODO while True
         index_next = search_char(unit, index_last, ("/", "*"))
         
         if index_next - index_last != 0:

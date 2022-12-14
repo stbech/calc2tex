@@ -1,6 +1,6 @@
 # calc2tex
 
-Computing values of formulas and displaying them in LaTeX.
+Compute results of formulas and display them in LaTeX.
 
 ## Quickstart
 
@@ -23,7 +23,7 @@ Create a `input.txt`-file containing:
 
 ```txt
 x; x_i; 12; m
-y; y_{res};; x**2*3; m**2
+y; y_{res}; x**2*3; m**2
 ```
 
 Create a `start.tex`-file which includes:
@@ -32,10 +32,10 @@ Create a `start.tex`-file which includes:
 in = Calc2tex("input.txt", "EN")
 in.table()
 Some text.
-$$in.comp("y")$$
+$$in.long("y")$$
 ```
 
-After running following python-script:
+After running the following python-script:
 
 ```python
 import calc2tex
@@ -46,6 +46,7 @@ a new file `output.tex` is created which contains:
 
 ```latex
 
+
 \begin{table}[htbp]
     \centering
     \caption{input values}
@@ -54,12 +55,12 @@ a new file `output.tex` is created which contains:
         \toprule
         variable & value & unit\\
         \midrule
-        $x_i$ & 12.0 & $\si{\meter}$\\ 
+        $x_i$ &12 & $\si{\meter}$\\
         \bottomrule
     \end{tabular}
 \end{table}
 Some text.
-$$y_{res} =& x_i^{2}\cdot 3 = \SI{12.0}{\meter}^{2}\cdot 3 = \SI{432.0}{\meter\tothe{2}}$$
+$$y_{res} = x_i^{2}\cdot 3 = \left(\SI{12}{\meter}\right)^{2}\cdot 3 = \SI{432}{\meter\tothe{2}}$$
 ```
 
 ## Issues

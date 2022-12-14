@@ -46,9 +46,9 @@ def delimiters(delimiter: str, left_val: float, right_val: float) -> (str, bool)
 
 def string_comb(formula: str, data: dict, bibs: dict) -> dict:
     
-    formula = formula.lstrip("string")      # remove leading if 
+    formula = formula.lstrip("string")      # remove leading string
     
-    parts = formula.split("+")           # split at every elif
+    parts = formula.split("+")           # split at every plus
     #parts = [part.strip() for part in parts]
     
     res = ""
@@ -78,6 +78,7 @@ def ifthenelse(formula: str, data: dict, bibs: dict) -> dict:
     parts = formula.split("elif")           # split at every elif
     parts.extend(parts[-1].split("else"))   # get last element and split at else
     parts.pop(-3)                           # remove element containing else
+    #TODO check of else vorhanden, sonst kein pop
     
     parts = [elem.strip(" :") for elem in parts]
     form_dicts = []

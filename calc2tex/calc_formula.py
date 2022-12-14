@@ -44,6 +44,7 @@ def split_mult(string: str) -> str:
         The input with the single factors processed.
 
     """
+    #print("split_mult() ", string)
     index_last = 0
     back = ""
     
@@ -78,6 +79,7 @@ def split_quo(string: str) -> str:
         Processed formula.
 
     """
+    #print("split_quo()  ", string)
     #TODO ?/?/? berücksichtigen -> \frac{?}{?*?}
     index_last, index_start = 0, 0
     back = ""
@@ -123,6 +125,7 @@ def split_quo(string: str) -> str:
         
         before = split_mult(string[index_last:start])
         if intdiv:
+            #TODO prüfe Syntax
             back += "".join((before,"\\left\\lfloor\\frac{", numerator, "}{", denominator, "}\\right\\rfloor "))
         else:
             back += "".join((before,"\\frac{", numerator, "}{", denominator, "}"))
@@ -147,6 +150,7 @@ def split_sum(string: str) -> str:
         Processed formula.
 
     """
+    #print("split_sum()  ", string)
     if len(string) == 0:
         return string
     #TODO muss index_last auf 1 gesetzt werden, immer auf 1 -> if bedingung in schleife weg
@@ -189,6 +193,7 @@ def split_expo(string: str) -> str:
         Processed formula.
 
     """
+    #print("split_expo() ", string)
     index_last = 0
     expos = []
     
@@ -245,6 +250,7 @@ def split_comma(string: str) -> str:
         The joined and processed arguments.
 
     """
+    #print("split_comma()", string)
     index_last, index_start = 0, 0
     args = []
     
@@ -281,6 +287,7 @@ def split_funct(string: str) -> str:
         Nearly to LaTeX converted formula.
 
     """
+    #print("split_funct()", string)
     functions = []
     index_last = 0
     
@@ -412,6 +419,7 @@ def transform_vars(var_list: list, data: dict, bibs: dict) -> (list, list, list)
         A list to into into the formula with all values.
 
     """
+    #TODO int-Funktion definieren -> entweder als ceil/floor
     #TODO bei x.000 nur x ausgeben
     #TODO abhängig von größe der Zahl Standardgenauigkeit ändern oder in Exponentialdarstellung wechseln
     tex_val = var_list[:]
@@ -538,7 +546,7 @@ def vars_in_python_form(short_formula: str, var_list: list) -> str:
     """Inputs all variables from var_list into formula to evalute in python"""
     #TODO statt Fragezeichen noch selteneres verwenden (Paragraph oder Tilde)
     
-    short_formula = short_formula.replace("~", "?")
+    short_formula = short_formula.replace("~", "?") #TODO noch benötigt?
     short_formula = short_formula.replace("$", "?")
     short_formula = short_formula.replace("°", "?")
     #TODO aus ceil, floor-Ergebnissen integer machen
@@ -593,7 +601,7 @@ def add_brackets(tex_val: str) -> str:
             pos = index
         
     index_last = 0
-    
+    #TODO wird \num auch eine Klammer eingefügt?
     while True:
         index = tex_val.find("^", index_last)
         if index == -1:

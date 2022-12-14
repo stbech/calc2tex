@@ -404,6 +404,7 @@ class Calc2tex:
 
         if first == None:
             for key, value in self.data.items():
+                #TODO Anpassen für if,eval -> if not str or not val
                 if value["var"] == "form" or key == last:
                     break
 
@@ -412,6 +413,7 @@ class Calc2tex:
                 else:
                     unit = value["tex_un"]
 
+                #TODO Behandlung für Strings anpassen
                 tab += "".join(("\t\t$", value["tex_var"], "$ &", str(round(value["res"], value["prec"])), " & $\\si{", unit, "}$\\\\\n"))
 
         else:
@@ -444,8 +446,6 @@ class Calc2tex:
                     
                 column_list.append(tab[old_line: new_line].split("\n"))
                 old_line = new_line + 1
-            
-            max_length = len(column_list[0])
             
             tab = ""
             for i in range(len(column_list[0])):

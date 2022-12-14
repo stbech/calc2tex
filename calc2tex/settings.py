@@ -38,22 +38,23 @@ accuracy = 3
 
 exponential_break = 6    # sets exponent, at which number should be convert to exponential representation 
 
-mult_sign = "\\cdot" #others: \times, \star, \ast
-
 units = {"singleun": {"m": "\\meter", "g": "\\gram", "A": "\\ampere", "C": "\\coulomb", "K": "\\kelvin", "s": "\\second", "J": "\\joule", "N": "\\newton",
              "V": "\\volt", "W": "\\watt", "h": "\\hour", "l": "\\litre", "t": "\\tonne", "d": "\\day", "a": "\\year", "°": "\\degree"},
-         "singlepre": {"p": "\\pico", "n": "\\nano", "m": "\\milli", "c": "\\centi", "d": "\\dezi", "h": "\\hecto", "k": "\\kilo",
+         "singlepre": {"f": "\\femto", "p": "\\pico", "n": "\\nano", "m": "\\milli", "c": "\\centi", "d": "\\dezi", "h": "\\hecto", "k": "\\kilo",
              "M": "\\mega", "G": "\\giga", "T": "\\tera", "P": "\\peta"},
          "doubleun": {"ha": "\\hectare", "Pa": "\\pascal", "cd": "\\candela", "Bq": "\\bequerel", "Hz": "\\hertz",
-             "lm": "\\lumen", "Sv": "\\sievert", "dB": "\\decibel", "°C": "\\degreeCelsius", "Nm": "\\newton\\meter"},
+             "lm": "\\lumen", "Sv": "\\sievert", "dB": "\\decibel", "°C": "\\degreeCelsius", "Nm": "\\newton\\meter", "°C": "\\degreeCelsius"},
          "doublepre": {"mu": "\\micro", "da": "\\deca"},
          "tribleun": {"min": "\\minute", "mol": "\\mole", "bar": "\\bar", "ohm": "\\ohm", "rad": "\\radian",
              "gon": "\\gon", "deg": "\\degree"}}
 
-keywords = ("acc", "type")
+
+mult_sign = "\\cdot" #others: \times, \star, \ast
 
 quotation_marks = ("\\lq ", "\\text{\\rq}")
 
 check_symb = {"True": "\\qquad\\checkmark", "False": "\\qquad\\lightning"}
+
+keywords = ("acc", "type")
 
 types = ("iter", "if", "eval", "tab")       #noch nicht implementiert

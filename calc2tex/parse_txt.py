@@ -103,7 +103,7 @@ def read_file(filename: str) -> (dict, dict):
             #TODO zweites dict mit Werten von Bibs, auf Reihenfolge von Einfügen achten falls Doppelkey,
                 #erst im aktuellen Verzeichnis schauen-> Aufbau und Verarbeitung wie read-file, dann im Modulverzeichnis Biblio suchen
                 #dort als json oder txt speichern, letzteres geringerer Platzbedarf, langsameres parsen; abhängig von Dateiendung verarbeiten
-         
+                
         elif (line[3].startswith("'") and line[3].endswith("'")) or (line[3].startswith('"') and line[3].endswith('"')):
             if line[3].count("'") > 2 or line[3].count("'") > 2:
                 data[line[1]] = input_dict(int(line[0]), "form", line[2], line[3], line[4], 0, 0)

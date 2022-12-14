@@ -18,6 +18,7 @@ from .helpers import search_bracket, search_char, Calc2texError
 from .calc2tex import Calc2tex
 
 #TODO a1 = Calc2tex('file.json') -> only load file, nothing else
+#TODO show_log wird nicht verwendet -> entfernen
 def process_tex(in_file: str, out_file: str, show_log: bool=True) ->None:
     commands = []
 
@@ -33,8 +34,7 @@ def process_tex(in_file: str, out_file: str, show_log: bool=True) ->None:
                 
                     start = line.rfind(" ", 0, end-1) + 1
                     if start == 0:
-                        #TODO durch rfind ersetzen -> wenn kein \t gefunden -> start = 0 oder Regex \s suchen
-                        start = line.rindex("\t", 0, end-1) + 1
+                        start = line.rfind("\t", 0, end-1) + 1
                 
                     commands.append(line[start:end-1] + ".")
                     exec(line[start:bracket+1])
